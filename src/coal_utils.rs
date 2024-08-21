@@ -1,23 +1,23 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use drillx::Solution;
-use ore_api::{
+use coal_api::{
     consts::{
         BUS_ADDRESSES, CONFIG_ADDRESS, EPOCH_DURATION, MINT_ADDRESS, PROOF, TOKEN_DECIMALS,
         TREASURY_ADDRESS,
     },
     instruction,
     state::{Config, Proof, Treasury},
-    ID as ORE_ID,
+    ID as COAL_ID,
 };
-pub use ore_utils::AccountDeserialize;
+pub use coal_utils::AccountDeserialize;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
     account::ReadableAccount, clock::Clock, instruction::Instruction, pubkey::Pubkey, sysvar,
 };
 use spl_associated_token_account::get_associated_token_address;
 
-pub const ORE_TOKEN_DECIMALS: u8 = TOKEN_DECIMALS;
+pub const COAL_TOKEN_DECIMALS: u8 = TOKEN_DECIMALS;
 
 pub fn get_auth_ix(signer: Pubkey) -> Instruction {
     let proof = proof_pubkey(signer);
@@ -45,19 +45,19 @@ pub fn get_stake_ix(signer: Pubkey, sender: Pubkey, stake_amount: u64) -> Instru
     instruction::stake(signer, sender, stake_amount)
 }
 
-pub fn get_ore_mint() -> Pubkey {
+pub fn get_coal_mint() -> Pubkey {
     MINT_ADDRESS
 }
 
-pub fn get_ore_epoch_duration() -> i64 {
+pub fn get_coal_epoch_duration() -> i64 {
     EPOCH_DURATION
 }
 
-pub fn get_ore_decimals() -> u8 {
+pub fn get_coal_decimals() -> u8 {
     TOKEN_DECIMALS
 }
 
-pub async fn get_config(client: &RpcClient) -> Result<ore_api::state::Config, String> {
+pub async fn get_config(client: &RpcClient) -> Result<coal_api::state::Config, String> {
     let data = client.get_account_data(&CONFIG_ADDRESS).await;
     match data {
         Ok(data) => {
@@ -77,8 +77,8 @@ pub async fn get_proof_and_config_with_busses(
     authority: Pubkey,
 ) -> (
     Result<Proof, ()>,
-    Result<ore_api::state::Config, ()>,
-    Result<Vec<Result<ore_api::state::Bus, ()>>, ()>,
+    Result<coal_api::state::Config, ()>,
+    Result<Vec<Result<coal_api::state::Bus, ()>>, ()>,
 ) {
     let account_pubkeys = vec![
         proof_pubkey(authority),
@@ -101,55 +101,55 @@ pub async fn get_proof_and_config_with_busses(
         };
 
         let treasury_config = if let Some(data) = &datas[1] {
-            Ok(*ore_api::state::Config::try_from_bytes(data.data())
+            Ok(*coal_api::state::Config::try_from_bytes(data.data())
                 .expect("Failed to parse config account"))
         } else {
             Err(())
         };
         let bus_1 = if let Some(data) = &datas[2] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus1 account"))
         } else {
             Err(())
         };
         let bus_2 = if let Some(data) = &datas[3] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus2 account"))
         } else {
             Err(())
         };
         let bus_3 = if let Some(data) = &datas[4] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus3 account"))
         } else {
             Err(())
         };
         let bus_4 = if let Some(data) = &datas[5] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus4 account"))
         } else {
             Err(())
         };
         let bus_5 = if let Some(data) = &datas[6] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus5 account"))
         } else {
             Err(())
         };
         let bus_6 = if let Some(data) = &datas[7] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus6 account"))
         } else {
             Err(())
         };
         let bus_7 = if let Some(data) = &datas[8] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus7 account"))
         } else {
             Err(())
         };
         let bus_8 = if let Some(data) = &datas[9] {
-            Ok(*ore_api::state::Bus::try_from_bytes(data.data())
+            Ok(*coal_api::state::Bus::try_from_bytes(data.data())
                 .expect("Failed to parse bus1 account"))
         } else {
             Err(())
@@ -182,7 +182,7 @@ pub async fn get_proof(client: &RpcClient, authority: Pubkey) -> Result<Proof, S
 }
 
 pub fn proof_pubkey(authority: Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[PROOF, authority.as_ref()], &ORE_ID).0
+    Pubkey::find_program_address(&[PROOF, authority.as_ref()], &COAL_ID).0
 }
 
 pub fn treasury_tokens_pubkey() -> Pubkey {
