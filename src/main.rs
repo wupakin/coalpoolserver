@@ -10,7 +10,7 @@ use std::{
 
 use self::models::*;
 use app_rr_database::AppRRDatabase;
-use ::ore_utils::AccountDeserialize;
+use ::coal_utils::AccountDeserialize;
 use app_database::{AppDatabase, AppDatabaseError};
 use axum::{
     extract::{
@@ -23,11 +23,11 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 use drillx::Solution;
 use futures::{stream::SplitSink, SinkExt, StreamExt};
-use ore_api::{consts::BUS_COUNT, event::MineEvent, state::Proof};
-use ore_utils::{
-    get_auth_ix, get_cutoff, get_mine_ix, get_ore_mint, get_proof,
+use coal_api::{consts::BUS_COUNT, event::MineEvent, state::Proof};
+use coal_utils::{
+    get_auth_ix, get_cutoff, get_mine_ix, get_coal_mint, get_proof,
     get_proof_and_config_with_busses, get_register_ix, get_reset_ix, proof_pubkey,
-    ORE_TOKEN_DECIMALS,
+    COAL_TOKEN_DECIMALS,
 };
 use rand::Rng;
 use serde::Deserialize;
@@ -113,7 +113,7 @@ pub struct Config {
     pool_id: i32,
 }
 
-mod ore_utils;
+mod coal_utils;
 
 #[derive(Parser, Debug)]
 #[command(version, author, about, long_about = None)]
@@ -149,7 +149,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
     let args = Args::parse();
 
-    let file_appender = tracing_appender::rolling::daily("./logs", "ore-hq-server.log");
+    let file_appender = tracing_appender::rolling::daily("./logs", "coal-hq-server.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt().with_writer(non_blocking).init();
 
@@ -721,7 +721,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                                             tokio::time::sleep(Duration::from_millis(1000)).await;
                                                             let latest_proof = { app_proof.lock().await.clone() };
                                                             let balance = (latest_proof.balance as f64)
-                                                                / 10f64.powf(ORE_TOKEN_DECIMALS as f64);
+                                                                / 10f64.powf(COAL_TOKEN_DECIMALS as f64);
                                                             let _ = mine_success_sender.send(
                                                                 MessageInternalMineSuccess {
                                                                     difficulty,
@@ -874,7 +874,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 .saturating_div(msg.total_hashpower as u128);
 
                             // TODO: handle overflow/underflow and float imprecision issues
-                            let decimals = 10f64.powf(ORE_TOKEN_DECIMALS as f64);
+                            let decimals = 10f64.powf(COAL_TOKEN_DECIMALS as f64);
                             let earned_rewards = hashpower_percent
                                 .saturating_mul(msg.rewards as u128)
                                 .saturating_div(1_000_000)
@@ -906,7 +906,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             };
                             
                             let message = format!(
-                                "Pool Submitted Difficulty: {}\nPool Earned:  {:.11} ORE\nPool Balance: {:.11}\n----------------------\nActive Miners: {}\n----------------------\nMiner Submitted Difficulty: {}\nMiner Earned: {:.11} ORE\n{:.2}% of total pool reward",
+                                "Pool Submitted Difficulty: {}\nPool Earned:  {:.11} COAL\nPool Balance: {:.11}\n----------------------\nActive Miners: {}\n----------------------\nMiner Submitted Difficulty: {}\nMiner Earned: {:.11} COAL\n{:.2}% of total pool reward",
                                 msg.difficulty,
                                 pool_rewards_dec,
                                 msg.total_balance,
@@ -1275,7 +1275,7 @@ async fn get_miner_rewards(
         match res {
             Ok(rewards) => {
                 let decimal_bal =
-                    rewards.balance as f64 / 10f64.powf(ore_api::consts::TOKEN_DECIMALS as f64);
+                    rewards.balance as f64 / 10f64.powf(coal_api::consts::TOKEN_DECIMALS as f64);
                 let response = format!("{}", decimal_bal);
                 return Response::builder()
                     .status(StatusCode::OK)
@@ -1346,7 +1346,7 @@ async fn get_miner_balance(
     Extension(rpc_client): Extension<Arc<RpcClient>>,
 ) -> impl IntoResponse {
     if let Ok(user_pubkey) = Pubkey::from_str(&query_params.pubkey) {
-        let miner_token_account = get_associated_token_address(&user_pubkey, &get_ore_mint());
+        let miner_token_account = get_associated_token_address(&user_pubkey, &get_coal_mint());
         if let Ok(response) = rpc_client
             .get_token_account_balance(&miner_token_account)
             .await
@@ -1428,8 +1428,8 @@ async fn post_claim(
                 }
             }
 
-            let ore_mint = get_ore_mint();
-            let miner_token_account = get_associated_token_address(&user_pubkey, &ore_mint);
+            let coal_mint = get_coal_mint();
+            let miner_token_account = get_associated_token_address(&user_pubkey, &coal_mint);
 
             let prio_fee: u32 = 20_000;
 
@@ -1448,7 +1448,7 @@ async fn post_claim(
                         spl_associated_token_account::instruction::create_associated_token_account(
                             &wallet.pubkey(),
                             &user_pubkey,
-                            &ore_api::consts::MINT_ADDRESS,
+                            &coal_api::consts::MINT_ADDRESS,
                             &spl_token::id(),
                         ),
                     )
@@ -1459,13 +1459,13 @@ async fn post_claim(
                     spl_associated_token_account::instruction::create_associated_token_account(
                         &wallet.pubkey(),
                         &user_pubkey,
-                        &ore_api::consts::MINT_ADDRESS,
+                        &coal_api::consts::MINT_ADDRESS,
                         &spl_token::id(),
                     ),
                 )
             }
 
-            let ix = ore_api::instruction::claim(wallet.pubkey(), miner_token_account, amount);
+            let ix = coal_api::instruction::claim(wallet.pubkey(), miner_token_account, amount);
             ixs.push(ix);
 
             if let Ok((hash, _slot)) = rpc_client
@@ -1873,8 +1873,8 @@ async fn proof_tracking_system(ws_url: String, wallet: Arc<Keypair>, proof: Arc<
                         // if let Ok(bus) = Bus::try_from_bytes(&data_bytes) {
                         //     let _ = sender.send(AccountUpdatesData::BusData(*bus));
                         // }
-                        // if let Ok(ore_config) = ore_api::state::Config::try_from_bytes(&data_bytes) {
-                        //     let _ = sender.send(AccountUpdatesData::TreasuryConfigData(*ore_config));
+                        // if let Ok(coal_config) = coal_api::state::Config::try_from_bytes(&data_bytes) {
+                        //     let _ = sender.send(AccountUpdatesData::TreasuryConfigData(*coal_config));
                         // }
                         if let Ok(new_proof) = Proof::try_from_bytes(&data_bytes) {
                             info!("Got new proof data");
