@@ -21,7 +21,7 @@ use axum::{
 use axum_extra::{headers::authorization::Basic, TypedHeader};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
-use drillx::Solution;
+use drillx_2::Solution;
 use futures::{stream::SplitSink, SinkExt, StreamExt};
 use coal_api::{consts::BUS_COUNT, event::MineEvent, state::Proof};
 use coal_utils::{

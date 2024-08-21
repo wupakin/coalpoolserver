@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use drillx::Solution;
+use drillx_2::Solution;
 use coal_api::{
     consts::{
         BUS_ADDRESSES, CONFIG_ADDRESS, EPOCH_DURATION, MINT_ADDRESS, PROOF, TOKEN_DECIMALS,
