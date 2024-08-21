@@ -558,8 +558,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             ixs.push(prio_fee_ix);
 
                             let noop_ix = get_auth_ix(signer.pubkey());
+                            let noop_ix_clone = noop_ix.clone();
                             ixs.push(noop_ix);
-                            ixs.push(noop_ix);
+                            ixs.push(noop_ix_clone);
 
                             if should_add_reset_ix {
                                 let reset_ix = get_reset_ix(signer.pubkey());
