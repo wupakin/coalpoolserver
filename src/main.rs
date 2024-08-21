@@ -559,6 +559,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                             let noop_ix = get_auth_ix(signer.pubkey());
                             ixs.push(noop_ix);
+                            ixs.push(noop_ix);
 
                             if should_add_reset_ix {
                                 let reset_ix = get_reset_ix(signer.pubkey());
