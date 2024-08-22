@@ -53,7 +53,7 @@ use tokio::{
     sync::{
         mpsc::{UnboundedReceiver, UnboundedSender},
         Mutex, RwLock,
-    },
+    }, time::Instant,
 };
 use tower_http::{cors::CorsLayer, trace::{DefaultMakeSpan, TraceLayer}};
 use tracing::{error, info};
@@ -90,10 +90,15 @@ pub struct MessageInternalMineSuccess {
     submissions: HashMap<Pubkey, (i32, u32, u64)>,
 }
 
+pub struct LastPong {
+    pongs: HashMap<SocketAddr, Instant>
+}
+
 #[derive(Debug)]
 pub enum ClientMessage {
     Ready(SocketAddr),
     Mining(SocketAddr),
+    Pong(SocketAddr),
     BestSolution(SocketAddr, Solution, Pubkey),
 }
 
@@ -344,6 +349,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }));
     let ready_clients = Arc::new(Mutex::new(HashSet::new()));
 
+        let pongs = Arc::new(RwLock::new(LastPong { pongs: HashMap::new() }));
+
+    // Track client pong timings
+    let app_pongs = pongs.clone();
+    let app_state = shared_state.clone();
+    tokio::spawn(async move {
+        pong_tracking_system(app_pongs, app_state).await;
+    });
+    
     let app_wallet = wallet_extension.clone();
     let app_proof = proof_ext.clone();
     // Establish webocket connection for tracking pool proof changes.
@@ -362,6 +376,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_client_nonce_ranges = client_nonce_ranges.clone();
     let app_config = config.clone();
     let app_state = shared_state.clone();
+    let app_pongs = pongs.clone();
     tokio::spawn(async move {
         client_message_handler_system(
             client_message_receiver,
@@ -372,6 +387,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             app_client_nonce_ranges,
             app_config,
             app_state,
+            app_pongs,
         )
         .await;
     });
@@ -1826,7 +1842,8 @@ fn process_message(
             return ControlFlow::Break(());
         }
         Message::Pong(_v) => {
-            //println!(">>> {who} sent pong with {v:?}");
+            let msg = ClientMessage::Pong(who);
+            let _ = client_channel.send(msg);
         }
         Message::Ping(_v) => {
             //println!(">>> {who} sent ping with {v:?}");
