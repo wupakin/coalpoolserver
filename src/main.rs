@@ -1911,6 +1911,31 @@ async fn proof_tracking_system(ws_url: String, wallet: Arc<Keypair>, proof: Arc<
     }
 }
 
+async fn pong_tracking_system(
+    app_pongs: Arc<RwLock<LastPong>>,
+    app_state: Arc<RwLock<AppState>>,
+) {
+    loop {
+        let reader = app_pongs.read().await;
+        let pongs = reader.pongs.clone();
+        drop(reader);
+
+        for pong in pongs.iter() {
+            if pong.1.elapsed().as_secs() > 45 {
+                let mut writer = app_state.write().await;
+                writer.sockets.remove(pong.0);
+                drop(writer);
+
+                let mut writer = app_pongs.write().await;
+                writer.pongs.remove(pong.0);
+                drop(writer)
+            }
+        }
+
+        tokio::time::sleep(Duration::from_secs(15)).await;
+    }
+}
+
 async fn client_message_handler_system(
     mut receiver_channel: UnboundedReceiver<ClientMessage>,
     app_database: Arc<AppDatabase>,
@@ -1920,9 +1945,15 @@ async fn client_message_handler_system(
     client_nonce_ranges: Arc<RwLock<HashMap<Pubkey, Range<u64>>>>,
     app_config: Arc<Config>,
     app_state: Arc<RwLock<AppState>>,
+    app_pongs: Arc<RwLock<LastPong>>
 ) {
     while let Some(client_message) = receiver_channel.recv().await {
         match client_message {
+            ClientMessage::Pong(addr) => {
+                let mut writer = app_pongs.write().await;
+                writer.pongs.insert(addr, Instant::now());
+                drop(writer);
+            }
             ClientMessage::Ready(addr) => {
                 let ready_clients = ready_clients.clone();
                 tokio::spawn(async move {
