@@ -291,7 +291,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .add_new_pool(wallet.pubkey().to_string(), proof_pubkey.to_string())
                 .await;
 
-            if result.is_err() {
+           if let Err(e) = result {
                 panic!("Failed to create pool in database: {:?}", e);
             }
         }
