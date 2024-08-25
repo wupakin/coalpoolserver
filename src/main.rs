@@ -284,7 +284,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(_) => {
             error!("Pool missing from database. Inserting...");
             let proof_pubkey = proof_pubkey(wallet.pubkey());
-            error!("Database URL: {}", database_url);
+            
             error!("Wallet Pubkey: {}", wallet.pubkey().to_string());
             error!("Proof Pubkey: {}", proof_pubkey.to_string());
             let result = app_database
