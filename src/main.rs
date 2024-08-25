@@ -282,14 +282,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("Failed to get database pool connection");
         }
         Err(_) => {
-            info!("Pool missing from database. Inserting...");
+            error!("Pool missing from database. Inserting...");
             let proof_pubkey = proof_pubkey(wallet.pubkey());
+            error!("Database URL: {}", database_url);
+            error!("Wallet Pubkey: {}", wallet.pubkey().to_string());
+            error!("Proof Pubkey: {}", proof_pubkey.to_string());
             let result = app_database
                 .add_new_pool(wallet.pubkey().to_string(), proof_pubkey.to_string())
                 .await;
 
             if result.is_err() {
-                panic!("Failed to create pool in database");
+                panic!("Failed to create pool in database: {:?}", e);
             }
         }
     }
